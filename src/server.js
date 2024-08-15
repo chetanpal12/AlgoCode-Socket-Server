@@ -3,6 +3,7 @@ const { createServer } = require("http"); // Import http
 const { Server } = require("socket.io"); // Import socket.io
 const Redis = require('ioredis');
 const bodyParser = require('body-parser');
+let socketID;
 
 const app = express(); // Create express app
 app.use(bodyParser.json());
@@ -12,13 +13,14 @@ const redisCache = new Redis(); // Create Redis client
 
 const io = new Server(httpServer, { 
     cors: {
-        origin: "http://localhost:5500",
+        origin:  ["http://localhost:5500", "http://localhost:4200"],
         methods: ["GET", "POST"]
     }
  }); // Create socket.io server
 
 io.on("connection", (socket) => {
     console.log("A user connected " + socket.id);
+    socketID=socket.id;
     socket.on("setUserId", (userId) => {
         console.log("Setting user id to connection id", userId, socket.id);
         redisCache.set(userId, socket.id);
@@ -36,14 +38,18 @@ io.on("connection", (socket) => {
 });
 
 app.post('/sendPayload', async (req, res) => {
+    console.log("api hit ");
     const { userId, payload } = req.body;
    if(!userId || !payload) {
        res.status(400).send("Invalid request");
    }
    const socketId = await redisCache.get(userId);
+   console.log("socketid",socketId);
 
    if(socketId) {
-         io.to(socketId).emit('submissionPayloadResponse', payload);
+    console.log("inside this")
+         io./* to(socketID). */emit('submissionPayloadResponse', payload);
+         console.log("paylaod sent",payload);
          res.send("Payload sent successfully");
     } else {
          res.status(404).send("User not connected");
